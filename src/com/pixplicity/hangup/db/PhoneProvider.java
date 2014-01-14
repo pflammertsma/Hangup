@@ -89,7 +89,6 @@ public class PhoneProvider extends ContentProvider {
 	public Uri insert(Uri uri, ContentValues values) {
 		int uriType = sURIMatcher.match(uri);
 		SQLiteDatabase sqlDB = database.getWritableDatabase();
-		int rowsDeleted = 0;
 		long id = 0;
 		switch (uriType) {
 		case PHONES:

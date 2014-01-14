@@ -1,7 +1,5 @@
 package com.pixplicity.hangup;
 
-import java.util.ArrayList;
-
 import android.app.Activity;
 import android.content.ContentValues;
 import android.database.ContentObserver;
@@ -25,7 +23,7 @@ public class MainActivity extends Activity {
 	private TextView mTextView;
 	private ListView mListView;
 
-	private ArrayList<Phone> mList = null;
+	private SparseArray<Phone> mList = null;
 	private PhoneAdapter mListAdapter;
 	private ContentObserver mObserver;
 
@@ -69,6 +67,18 @@ public class MainActivity extends Activity {
 	protected void onResume() {
 		mPaused = false;
 		super.onResume();
+		startObserving();
+	}
+
+	@Override
+	protected void onPause() {
+		super.onPause();
+		stopObserving();
+		mPaused = true;
+		updateAll(false);
+	}
+
+	private void startObserving() {
 		if (mObserver == null) {
 			mObserver = new ContentObserver(new Handler()) {
 
@@ -87,12 +97,8 @@ public class MainActivity extends Activity {
 		getContentResolver().registerContentObserver(PhoneProvider.CONTENT_URI, true, mObserver);
 	}
 
-	@Override
-	protected void onPause() {
-		super.onPause();
+	private void stopObserving() {
 		getContentResolver().unregisterContentObserver(mObserver);
-		mPaused = true;
-		updatePhones();
 	}
 
 	public boolean isPaused() {
@@ -109,11 +115,13 @@ public class MainActivity extends Activity {
 		mPhonesToUpdate.put(phone.getId(), phone);
 		CallReceiver.getInstance().setPhone(this, phone.getId(), phone);
 		if (isPaused()) {
-			updatePhones();
+			updateAll(false);
 		}
 	}
 
-	private void updatePhones() {
+	public void updateAll(boolean force) {
+		if (force)
+			stopObserving();
 		for (int i = 0; i < mPhonesToUpdate.size(); i++) {
 			Phone phone = mPhonesToUpdate.valueAt(i);
 			Uri uri = Uri.parse(PhoneProvider.CONTENT_URI + "/"
@@ -123,6 +131,8 @@ public class MainActivity extends Activity {
 			values.put(PhoneTable.COLUMN_PHONE_NUMBER, phone.getPhoneNumber());
 			getContentResolver().update(uri, values, null, null);
 		}
+		mPhonesToUpdate.clear();
+		if (force && !isPaused())
+			startObserving();
 	}
-
 }

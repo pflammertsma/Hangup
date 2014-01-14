@@ -1,7 +1,6 @@
 package com.pixplicity.hangup;
 
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -14,6 +13,7 @@ import android.os.Build.VERSION_CODES;
 import android.os.SystemClock;
 import android.telephony.TelephonyManager;
 import android.util.Log;
+import android.util.SparseArray;
 import android.widget.Toast;
 
 import com.android.internal.telephony.ITelephony;
@@ -34,7 +34,7 @@ public class CallReceiver extends BroadcastReceiver {
 
 	private int mRingerMode;
 
-	private ArrayList<Phone> mPhones;
+	private SparseArray<Phone> mPhones;
 
 	private static CallReceiver sInstance;
 
@@ -51,15 +51,16 @@ public class CallReceiver extends BroadcastReceiver {
 		String appName = context.getString(R.string.app_name);
 		ITelephony telephonyService = getTeleService(context);
 		if (telephonyService != null) {
-			ArrayList<Phone> phones = getPhones(context, false);
+			SparseArray<Phone> phones = getPhones(context, false);
 			String incomingNumber = null;
 			try {
 				incomingNumber = intent.getExtras().getString(
 						TelephonyManager.EXTRA_INCOMING_NUMBER);
-				if (incomingNumber != null && phones != null && !phones.isEmpty()) {
+				if (incomingNumber != null && phones != null && phones.size() > 0) {
 					Log.i(TAG, "incoming call from " + incomingNumber);
 					boolean reject = false;
-					for (Phone phone : phones) {
+					for (int i = 0; i < phones.size(); i++) {
+						Phone phone = phones.valueAt(i);
 						// Remove various characters to ensure a match
 						String matchNumber = phone.getPhoneNumber()
 								.replaceAll("[^0-9\\+.,;#\\*N]", "");
@@ -132,17 +133,17 @@ public class CallReceiver extends BroadcastReceiver {
 
 	public void setPhone(Context context, int index, Phone phone) {
 		getPhones(context, false);
-		mPhones.set(index, phone);
+		mPhones.put(index, phone);
 	}
 
-	public ArrayList<Phone> getPhones(Context context, boolean reload) {
+	public SparseArray<Phone> getPhones(Context context, boolean reload) {
 		String[] projection = {
 				PhoneTable.COLUMN_ID,
 				PhoneTable.COLUMN_PHONE_NUMBER,
 		};
 		if (mPhones == null || reload) {
 			if (mPhones == null) {
-				mPhones = new ArrayList<Phone>();
+				mPhones = new SparseArray<Phone>();
 			} else {
 				mPhones.clear();
 			}
@@ -154,7 +155,7 @@ public class CallReceiver extends BroadcastReceiver {
 					int id = cursor.getInt(cursor.getColumnIndexOrThrow(PhoneTable.COLUMN_ID));
 					String phoneNumber = cursor.getString(cursor
 							.getColumnIndexOrThrow(PhoneTable.COLUMN_PHONE_NUMBER));
-					mPhones.add(new Phone(id, phoneNumber));
+					mPhones.put(id, new Phone(id, phoneNumber));
 					cursor.moveToNext();
 				}
 				// always close the cursor
