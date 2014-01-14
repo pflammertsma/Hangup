@@ -46,24 +46,27 @@ public class PhoneProvider extends ContentProvider {
 	}
 
 	@Override
+	public String getType(Uri uri) {
+		return null;
+	}
+
+	@Override
 	public Cursor query(Uri uri, String[] projection, String selection,
 			String[] selectionArgs, String sortOrder) {
-
-		// Uisng SQLiteQueryBuilder instead of query() method
+		// Utility for building queries
 		SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
-
-		// check if the caller has requested a column which does not exists
-		checkColumns(projection);
-
-		// Set the table
 		queryBuilder.setTables(PhoneTable.TABLE_NAME);
+
+		// Always check if the projection maps with known columns
+		checkColumns(projection);
 
 		int uriType = sURIMatcher.match(uri);
 		switch (uriType) {
 		case PHONES:
+			// Obtains all rows
 			break;
 		case PHONE_ID:
-			// adding the ID to the original query
+			// Select one row by its ID
 			queryBuilder.appendWhere(PhoneTable.COLUMN_ID + "="
 					+ uri.getLastPathSegment());
 			break;
@@ -74,15 +77,12 @@ public class PhoneProvider extends ContentProvider {
 		SQLiteDatabase db = database.getWritableDatabase();
 		Cursor cursor = queryBuilder.query(db, projection, selection,
 				selectionArgs, null, null, sortOrder);
-		// make sure that potential listeners are getting notified
+
+		// Notify all listeners of changes
 		cursor.setNotificationUri(getContext().getContentResolver(), uri);
 
+		// Return the cursor
 		return cursor;
-	}
-
-	@Override
-	public String getType(Uri uri) {
-		return null;
 	}
 
 	@Override
@@ -97,44 +97,16 @@ public class PhoneProvider extends ContentProvider {
 		default:
 			throw new IllegalArgumentException("Unknown URI: " + uri);
 		}
+
+		// Notify all listeners of changes
 		getContext().getContentResolver().notifyChange(uri, null);
+
+		// Return the URI to the new row
 		return Uri.parse(BASE_PATH + "/" + id);
 	}
 
 	@Override
-	public int delete(Uri uri, String selection, String[] selectionArgs) {
-		int uriType = sURIMatcher.match(uri);
-		SQLiteDatabase sqlDB = database.getWritableDatabase();
-		int rowsDeleted = 0;
-		switch (uriType) {
-		case PHONES:
-			rowsDeleted = sqlDB.delete(PhoneTable.TABLE_NAME, selection,
-					selectionArgs);
-			break;
-		case PHONE_ID:
-			String id = uri.getLastPathSegment();
-			if (TextUtils.isEmpty(selection)) {
-				rowsDeleted = sqlDB.delete(PhoneTable.TABLE_NAME,
-						PhoneTable.COLUMN_ID + "=" + id,
-						null);
-			} else {
-				rowsDeleted = sqlDB.delete(PhoneTable.TABLE_NAME,
-						PhoneTable.COLUMN_ID + "=" + id
-								+ " and " + selection,
-						selectionArgs);
-			}
-			break;
-		default:
-			throw new IllegalArgumentException("Unknown URI: " + uri);
-		}
-		getContext().getContentResolver().notifyChange(uri, null);
-		return rowsDeleted;
-	}
-
-	@Override
-	public int update(Uri uri, ContentValues values, String selection,
-			String[] selectionArgs) {
-
+	public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
 		int uriType = sURIMatcher.match(uri);
 		SQLiteDatabase sqlDB = database.getWritableDatabase();
 		int rowsUpdated = 0;
@@ -164,8 +136,48 @@ public class PhoneProvider extends ContentProvider {
 		default:
 			throw new IllegalArgumentException("Unknown URI: " + uri);
 		}
+
+		// Notify all listeners of changes
+		// FIXME Presently, PhoneAdapter delays executing updates until the 
+		// activity is paused to prevent this operation from causing a loop
 		getContext().getContentResolver().notifyChange(uri, null);
+
+		// Return the number of updated rows
 		return rowsUpdated;
+	}
+
+	@Override
+	public int delete(Uri uri, String selection, String[] selectionArgs) {
+		int uriType = sURIMatcher.match(uri);
+		SQLiteDatabase sqlDB = database.getWritableDatabase();
+		int rowsDeleted = 0;
+		switch (uriType) {
+		case PHONES:
+			rowsDeleted = sqlDB.delete(PhoneTable.TABLE_NAME, selection,
+					selectionArgs);
+			break;
+		case PHONE_ID:
+			String id = uri.getLastPathSegment();
+			if (TextUtils.isEmpty(selection)) {
+				rowsDeleted = sqlDB.delete(PhoneTable.TABLE_NAME,
+						PhoneTable.COLUMN_ID + "=" + id,
+						null);
+			} else {
+				rowsDeleted = sqlDB.delete(PhoneTable.TABLE_NAME,
+						PhoneTable.COLUMN_ID + "=" + id
+								+ " and " + selection,
+						selectionArgs);
+			}
+			break;
+		default:
+			throw new IllegalArgumentException("Unknown URI: " + uri);
+		}
+
+		// Notify all listeners of changes
+		getContext().getContentResolver().notifyChange(uri, null);
+
+		// Return the number of deleted rows
+		return rowsDeleted;
 	}
 
 	private void checkColumns(String[] projection) {

@@ -99,6 +99,8 @@ public class PhoneAdapter extends BaseAdapter {
 						Phone phone = getItem(position);
 						phone.setPhoneNumber(s.toString());
 						((MainActivity) mContext).update(phone);
+						// FIXME We should enforce an update after some time;
+						// see remarks at PhoneProvider.update()
 					}
 				};
 				holder.etPhone.setOnFocusChangeListener(new OnFocusChangeListener() {
