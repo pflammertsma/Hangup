@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Hangup</string>
+    <string name="action_settings">Settings</string>
+    <string name="explanation">This app will reject calls from the following telephone numbers:</string>
+    <string name="delete_entry">Delete entry</string>
+    <string name="add_new_entry">Add new entry</string>
+
+</resources>
